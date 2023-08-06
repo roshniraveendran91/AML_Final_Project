@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Captioning</title>
+  <!-- Add Bootstrap CSS link -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 class="mb-4">Image Captioning</h1>
+    <form id="imageForm" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label for="imageUpload" class="form-label">Upload an Image</label>
+        <input type="file" class="form-control" id="imageUpload" accept="image/*">
+      </div>
+      <div class="mb-3">
+        <img id="previewImage" src="#" alt="Preview" style="max-width: 400px; max-height: 400px; display: none;">
+      </div>
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+    <div id="resultCaption" class="mt-4"></div>
+  </div>
+
+  <!-- Add Bootstrap JS and jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+  <script>
+    // Function to handle image preview
+    function readURL(input) {
+      if (input.files && input.files[0]) {
+        var reader = new FileReader();
+
+        reader.onload = function (e) {
+          $('#previewImage').attr('src', e.target.result).show();
+        }
+
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    // Event listener for image upload
+    $("#imageUpload").change(function () {
+      readURL(this);
+    });
+
+    // Event listener for form submission
+    $("#imageForm").submit(function (event) {
+      event.preventDefault();
+      var formData = new FormData(this);
+
+      // Send the image to Flask for image captioning
+      $.ajax({
+        url: "/caption",
+        type: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+          $("#resultCaption").text("Caption: " + response);
+        },
+        error: function (xhr, status, error) {
+          console.error("Error:", error);
+          $("#resultCaption").text("Error occurred during captioning.");
+        }
+      });
+    });
+  </script>
+</body>
+</html>
