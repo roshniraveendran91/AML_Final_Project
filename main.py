@@ -1,16 +1,34 @@
 from flask import Flask, render_template, request
 import numpy as np
 import os
-
+import joblib
 import pickle
+import json
+from flask import jsonify
 import tensorflow as tf
 import matplotlib.pyplot as plt
+from flask_cors import CORS
+import keras
+# from keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
-from keras.preprocessing.image import load_img, img_to_array
-from keras.preprocessing.sequence import pad_sequences
+from joblib import load
+
 
 
 app = Flask(__name__)
+CORS(app) 
+# Get the directory path of the\ current script
+# Define the directory path of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Define the path for the 'uploads' directory
+uploads_dir = os.path.join(script_dir, 'uploads')
+
+# Create 'uploads' directory if it doesn't exist
+if not os.path.exists(uploads_dir):
+    os.makedirs(uploads_dir)
 
 # Route for the home page
 @app.route('/')
@@ -34,16 +52,13 @@ def caption():
         return img
 
     # Define the path for saving the uploaded image
-    image_path = 'uploads/uploaded_image.jpg'
+    image_path = os.path.join(script_dir, 'uploads', 'uploaded_image.jpg')
     uploaded_image.save(image_path)
     image = read_image(image_path)
     plt.imshow(image)
 
-    import os
-    import pickle
 
-    # Get the directory path of the current script
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+
 
     # Construct the paths to the pickle files in the same folder as main.py
     tokenizer_path = os.path.join(script_dir, 'tokenizer.pkl')
@@ -53,11 +68,15 @@ def caption():
     with open(tokenizer_path, 'rb') as f:
         tokenizer = pickle.load(f)
 
-    print("Model loaded successfully.")
+    print("Tokenizer Model loaded successfully.")
 
     # Load the DenseNet201 from the pickle file
     with open(DenseNet201_path, 'rb') as f:
-        DenseNet201 = pickle.load(f)
+        # DenseNet201 = pickle.load(f)
+        DenseNet201 = load(f)
+
+    print("DenseNet201_path Model loaded successfully.")
+
 
     def feature_extraction(image_path, model1, img_size):
         img = load_img(os.path.join(image_path), target_size=(img_size, img_size))
@@ -105,7 +124,12 @@ def caption():
     # Perform captioning on the uploaded image
     max_length = 34
     caption_text = predict_caption(end_model, tokenizer, max_length, features)
-    return render_template('index.html', caption=caption_text)
+    print("caption is",caption_text)
+    caption_text = caption_text.replace("startseq", "").replace("endseq", "")
+
+    # return render_template('index.html', caption=caption_text)
+    return jsonify({'caption': caption_text})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
